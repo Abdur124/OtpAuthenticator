@@ -1,5 +1,6 @@
 package com.spring.otp.otpauthenticator.models;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -21,7 +22,7 @@ public class OtpDetails extends BaseModel{
     @ManyToOne
     private UserDetails user;
 
-    @OneToMany(mappedBy = "otp")
+    @OneToMany(mappedBy = "otpDetails", cascade = CascadeType.ALL)
     List<OtpDelivery> deliveries;
 
     public String getOtpValue() {

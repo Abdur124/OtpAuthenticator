@@ -1,5 +1,6 @@
 package com.spring.otp.otpauthenticator.models;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
 
@@ -9,20 +10,22 @@ import java.time.LocalDateTime;
 public class OtpDelivery extends BaseModel{
 
     @ManyToOne
-    private OtpDetails otp;
+    private OtpDetails otpDetails;
 
     private boolean isDelivered;
     private String deliveryTarget; // actual email/mobile
     private DeliveryType deliveryType;
     private DeliveryStatus deliveryStatus;
     private LocalDateTime deliveryTimestamp;
+    @Column(nullable = false)
+    private boolean isDeliveryRecorded;
 
-    public OtpDetails getOtp() {
-        return otp;
+    public OtpDetails getOtpDetails() {
+        return otpDetails;
     }
 
-    public void setOtp(OtpDetails otp) {
-        this.otp = otp;
+    public void setOtpDetails(OtpDetails otpDetails) {
+        this.otpDetails = otpDetails;
     }
 
     public boolean isDelivered() {
@@ -63,5 +66,13 @@ public class OtpDelivery extends BaseModel{
 
     public void setDeliveryTimestamp(LocalDateTime deliveryTimestamp) {
         this.deliveryTimestamp = deliveryTimestamp;
+    }
+
+    public boolean isDeliveryRecorded() {
+        return isDeliveryRecorded;
+    }
+
+    public void setDeliveryRecorded(boolean deliveryRecorded) {
+        isDeliveryRecorded = deliveryRecorded;
     }
 }
