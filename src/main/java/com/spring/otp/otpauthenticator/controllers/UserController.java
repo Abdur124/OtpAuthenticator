@@ -8,7 +8,10 @@ import com.spring.otp.otpauthenticator.models.OtpValidityStatus;
 import com.spring.otp.otpauthenticator.models.SignupStatus;
 import com.spring.otp.otpauthenticator.models.UserDetails;
 import com.spring.otp.otpauthenticator.models.UserStatus;
+import com.spring.otp.otpauthenticator.services.RateLimitService;
 import com.spring.otp.otpauthenticator.services.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.apache.catalina.util.RateLimiter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,12 +19,17 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Duration;
+
 @RestController
 @RequestMapping("/user")
 public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private RateLimitService rateLimitService;
 
     @PostMapping("/signUp")
     public ResponseEntity<SignupStatus> signUp(@RequestBody UserDetailsSetupDto userDetailsSetupDto) {
@@ -42,9 +50,23 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody UserLoginDto userLoginDto) {
-            String otpValue = userService.getOtpByAadhaarVerification(userLoginDto.getAadhaarId());
-            return ResponseEntity.ok(otpValue);
+    public ResponseEntity<String> login(@RequestBody UserLoginDto userLoginDto, HttpServletRequest httpServletRequest) {
+        String aadhaar = userLoginDto.getAadhaarId();
+        String ip = httpServletRequest.getRemoteAddr();
+
+        boolean allowedUser = rateLimitService.isAllowed("user: " + aadhaar, 5, Duration.ofMinutes(10));
+        boolean allowedIp = rateLimitService.isAllowed("ip: " + ip, 20, Duration.ofHours(1));
+
+        if(!allowedUser) {
+            return ResponseEntity.status(429).body("Too many OTP requests for this user. Try later.");
+        }
+
+        if(!allowedIp) {
+            return ResponseEntity.status(429).body("Too many OTP requests from this IP. Try later.");
+        }
+
+        String otpValue = userService.getOtpByAadhaarVerification(userLoginDto.getAadhaarId());
+        return ResponseEntity.ok(otpValue);
     }
 
     @PostMapping("/verifyOtp")
