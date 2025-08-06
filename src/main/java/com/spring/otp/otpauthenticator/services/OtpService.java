@@ -7,6 +7,7 @@ import com.spring.otp.otpauthenticator.models.*;
 import com.spring.otp.otpauthenticator.repositories.OtpDeliveryRepository;
 import com.spring.otp.otpauthenticator.repositories.OtpDetailsRepository;
 import com.spring.otp.otpauthenticator.repositories.UserDetailsRepository;
+import com.spring.otp.otpauthenticator.utils.OtpEncryptionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -41,8 +42,9 @@ public class OtpService {
     public OtpDetails validateAndGenerateOtp(UserDetails userDetails) {
 
         String otpValue = generateOtp();
+        String encryptedOtp = OtpEncryptionUtil.encryptOtp(otpValue);
         OtpDetails otpDetails = new OtpDetails();
-        otpDetails.setOtpValue(otpValue);
+        otpDetails.setOtpValue(encryptedOtp);
         otpDetails.setCreationTime(LocalDateTime.now());
         otpDetails.setExpiryTime(LocalDateTime.now().plusMinutes(OTP_VALIDITY_MINUTES));
         otpDetails.setValidated(false);
@@ -82,7 +84,7 @@ public class OtpService {
             return false;
         }
 
-        return latestOtp.getOtpValue().equals(otpSupplied);
+        return OtpEncryptionUtil.decryptOtp(latestOtp.getOtpValue()).equals(otpSupplied);
     }
 
     @KafkaListener(topics = "otp-ack", groupId = "acknowledgment")

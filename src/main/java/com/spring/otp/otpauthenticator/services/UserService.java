@@ -4,6 +4,7 @@ import com.spring.otp.otpauthenticator.exceptions.InvalidAadhaarIdException;
 import com.spring.otp.otpauthenticator.models.*;
 import com.spring.otp.otpauthenticator.repositories.OtpDeliveryRepository;
 import com.spring.otp.otpauthenticator.repositories.UserDetailsRepository;
+import com.spring.otp.otpauthenticator.utils.OtpEncryptionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -39,13 +40,14 @@ public class UserService {
         }
 
         OtpDetails otpDetails = otpService.validateAndGenerateOtp(userDetails);
+        String decryptedOtp = OtpEncryptionUtil.decryptOtp(otpDetails.getOtpValue());
 
-        redisService.cacheOtp(otpDetails.getUser().getAadhaarId(), otpDetails.getOtpValue(),
+        redisService.cacheOtp(otpDetails.getUser().getAadhaarId(), decryptedOtp,
                 CACHE_TTL_VALUE_IN_MINUTES);
 
         String otpMessage = String.format("aadhaar:%s|otp:%s|mobile:%s|email:%s",
                 otpDetails.getUser().getAadhaarId(),
-                otpDetails.getOtpValue(),
+                decryptedOtp,
                 userDetails.getMobileNumber(),
                 userDetails.getEmail()
         );
@@ -54,7 +56,7 @@ public class UserService {
 
         OtpDelivery otpDelivery = otpService.updateOtpDeliveryDetails(otpDetails);
 
-        return otpDelivery.getOtpDetails().getOtpValue();
+        return decryptedOtp;
     }
 
     public boolean verifyOtp(String aadhaar, String otp) {
